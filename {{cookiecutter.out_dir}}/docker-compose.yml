@@ -1,0 +1,118 @@
+{%- set db_tag = 'post' in cookiecutter.db_mode and 'postgresql' or cookiecutter.db_mode -%}
+version: '3.7'
+x-images:
+  env: &env {env_file: [.env, docker.env]}
+  {{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
+    <<: [ *env ]
+    tty: true
+    # latest image is only used in prod (without dev & test tools)
+    image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}-dev"
+    depends_on:
+    - db
+    - redis
+    - setup-{{db_tag}}
+    environment: &wordpress_env
+      APP_TYPE: {{cookiecutter.app_type}}
+    working_dir: /code/src
+    command:
+    - /bin/sh
+    - '-c'
+    - >-
+      :
+      && dockerize -wait http://setup-{{db_tag}} -timeout $${MYSQL_STARTUP_TIMEOUT}
+      && /init.sh
+    volumes:
+      {%- if not cookiecutter.remove_cron %}
+      - ./crontab:/etc/cron.d/{{cookiecutter.app_type}}
+      {%- endif %}
+      - certs:/certs/
+      - logs:/logs/
+      - ./local.php:/code/public_html/local.php
+      # to be done in children compose as we would shadow publichtml volume
+      # - uploads:/code/public_html/wp-content/uploads/
+services:
+  mailcatcher:
+    <<: [ *env ]
+    image: corpusops/mailhog
+    hostname: mailcatcher
+    volumes: ["mails:/mails"]
+    environment:
+      MH_STORAGE: maildir
+      MH_MAILDIR_PATH: /mails
+      MH_SMTP_BIND_ADDR: 0.0.0.0:1025
+      MH_API_BIND_ADDR: 0.0.0.0:8025
+      MH_UI_BIND_ADDR: 0.0.0.0:8025
+      MH_UI_WEB_PATH: /mailcatcher
+      MH_AUTH_FILE: /home/mailhog/pw
+    user: root
+    entrypoint:
+      - sh
+      - '-c'
+      - >
+        chown mailhog /mails
+        && pw=$$(MH_AUTH_FILE="" MailHog bcrypt "$${MAILCATCHER_PASSWORD:-mailcatcher}")
+        && echo "$${MAILCATCHER_USER:-mailcatcher}:$$pw" > $$MH_AUTH_FILE
+        && su mailhog -p -c MailHog
+  redis:
+    <<: [ *env ]
+    image: "{{cookiecutter.redis_image}}"
+    hostname: redis
+    volumes:
+      - 'redis:/data'
+  db:
+    <<: [ *env ]
+    image: "{{cookiecutter["{0}_image".format(cookiecutter.db_mode)]}}"
+    volumes:
+      - mysql:/var/lib/mysql
+  {{cookiecutter.app_type}}:
+    <<: [ *{{cookiecutter.app_type}} ]
+  {%- if not cookiecutter.remove_cron %}
+  cron:
+    <<: [ *{{cookiecutter.app_type}} ]
+    environment:
+      <<: [ *wordpress_env ]
+      IMAGE_MODE: cron
+    depends_on:
+    - {{cookiecutter.app_type}}
+  {%-endif%}
+  backup:
+    <<: [ *env ]
+    image: "corpusops/dbsmartbackup:3"
+    restart: always
+    volumes:
+      - backupdb-dumps:/srv/backups/
+      - backupdb-logs:/srv/backups/logs/
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - ./local/backup/setup/reconfigure.yml:/setup/reconfigure.yml:ro
+{% if db_tag == 'mysql' %}  setup-mysql:
+    <<: [ *env ]
+    image: "{{cookiecutter.mysql_image}}"
+    depends_on:
+    - db
+    entrypoint:
+    - /bin/sh
+    - '-c'
+    - |-
+      set -ex
+      MYSQL_STARTUP_TIMEOUT=$${MYSQL_STARTUP_TIMEOUT:-45s}
+      flag=/started_$$(echo $$MYSQL_DB|sed -re "s![/:]!__!g")
+      if [ -e "$$flag" ];then rm -f "$$flag";fi
+      echo "Try connection to mysql: $$MYSQL_DB & wait for db init" >&2 \
+      && ( while true;do if ( \
+        echo "select 1"\
+        | mysql --user="$$MYSQL_USER" --password="$$MYSQL_PASSWORD" --database="$$MYSQL_DB" --host=db \
+      );then touch $$flag && break;fi;done )&
+      set -x \
+      && dockerize -wait file://$$flag -timeout $${MYSQL_STARTUP_TIMEOUT} \
+      && while true;do printf "HTTP/1.1 200 OK\n\nstarted"| ( nc -l -p 80 || /bin/true);done
+{% endif %}
+volumes:
+  backupdb-logs:
+  backupdb-dumps:
+  mysql:
+  redis:
+  logs:
+  mails:
+  uploads:
+  certs:
+

@@ -1,0 +1,14 @@
+version: '3.7'
+x-images:
+  {{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
+    build:
+      context: "."
+      args:
+        WORDPRESS_PHP_VER: "${WORDPRESS_PHP_VER:-{{cookiecutter.wordpress_php_ver}}}"
+        WORDPRESS_VER: "${WORDPRESS_VER:-{{cookiecutter.wordpress_ver}}}"
+        WORDPRESS_FLAVOR: "${WORDPRESS_FLAVOR:-{{cookiecutter.wordpress_flavor}}}"
+services:
+  {%- if not cookiecutter.remove_cron %}
+  cron: {<<: [ *{{cookiecutter.app_type}} ]}
+  {%-endif%}
+  {{cookiecutter.app_type}}: {<<: [ *{{cookiecutter.app_type}} ]}

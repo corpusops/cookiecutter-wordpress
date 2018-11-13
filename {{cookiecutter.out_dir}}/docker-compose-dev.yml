@@ -1,0 +1,36 @@
+version: '3.7'
+x-images:
+  bypass: &bypass
+    command: 'sh -c "while true;do echo notstarted;sleep 65000;done"'
+    entrypoint: 'sh -c "while true;do echo notstarted;sleep 65000;done"'
+    restart: "no"
+  wordpress: &wordpress
+    environment: &wordpress_env
+      WORDPRESS: 1
+    {%-if cookiecutter.use_submodule_for_deploy_code %}
+    command: /code/init/init.sh{% endif %}
+    volumes: &wordpress_volumes
+      - ./sys/:/code/sys/
+      - ./local:/code/local
+      {%-if cookiecutter.use_submodule_for_deploy_code %}
+      - ./{{cookiecutter.deploy_project_dir}}/sys/sudoer:/etc/sudoers.d/$APP_TYPE
+      - ./{{cookiecutter.deploy_project_dir}}:/code/{{cookiecutter.deploy_project_dir}}
+      - ./{{cookiecutter.deploy_project_dir}}/sys/init.sh:/code/init/init.sh
+      - ./{{cookiecutter.deploy_project_dir}}/public_html/wp-config.php/code/public_html/wp-config.php
+      {%-else %}
+      - ./sys/sudoer:/etc/sudoers.d/$APP_TYPE
+      {%- endif%}
+      # to be done in children compose as we would shadow publichtml volume
+      - ./public_html:/code/public_html
+      - uploads:/code/public_html/wp-content/uploads/
+services:
+  backup: {<<: [ *bypass ]}
+  {{cookiecutter.app_type}}:
+    <<: [ *wordpress ]
+    environment:
+      <<: [ *wordpress_env ]
+      IMAGE_MODE: fg
+      NO_SSL: ""
+    ports:
+    - "80:80"
+    - "443:443"

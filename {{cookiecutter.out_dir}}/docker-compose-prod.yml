@@ -1,0 +1,18 @@
+version: '3.7'
+x-{{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
+  volumes:
+  # already in image but also synced locally
+  # ready for an hotfix to be activated in emergency
+  # - ./public_html:/var/www/html
+  - uploads:/code/public_html/wp-content/uploads/
+  image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}"
+services:
+  {{cookiecutter.app_type}}:
+    ports:
+    - 80:80
+    - "443:443"
+    <<: [ *{{cookiecutter.app_type}} ]
+  {% if not cookiecutter.remove_cron %}
+  cron:
+    <<: [ *{{cookiecutter.app_type}} ]
+  {%- endif%}

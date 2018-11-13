@@ -1,0 +1,29 @@
+# Python
+*.pyc
+__pycache__
+*.egg-info
+*.mo
+
+# Docker local settings
+/.env
+/docker.env
+/netrc
+
+# IDE settings
+.vscode
+.idea
+.~lock*
+
+# Virtualenv
+/venv/
+/.tox
+
+# corpusops & ansible
+*.retry
+/.ansible/scripts/ansible_deploy_env
+/local.php
+/local/
+!/local/regen.sh
+
+/public_html/wp-content/uploads/**/*
+/public_html/local.php

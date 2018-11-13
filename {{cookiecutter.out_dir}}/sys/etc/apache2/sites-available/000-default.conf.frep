@@ -1,0 +1,132 @@
+{{'{{'}} $dciphers := "EECDH+AESGCM:EDH+AESGCM:ECDHE-RSA-AES128-GCM-SHA256:AES256+EECDH:DHE-RSA-AES128-GCM-SHA256:AES256+EDH:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4" }}
+{{'{{'}} $v := dict "$" $ }}
+{{'{{'}} $v := merge $v ( dict "certspath"                   ( .Env.SSL_CERTS_PATH | default "/certs" )                                  ) }}
+{{'{{'}} $v := merge $v ( dict "cert"                        ( .Env.SSL_CERT_PATH | default ( print $v.certspath  "/cert.crt" ))         ) }}
+{{'{{'}} $v := merge $v ( dict "server_admin"                ( .Env.APACHE_SERVER_ADMIN | default ( "webmaster@localhost" )))}}
+{{'{{'}} $v := merge $v ( dict "doc_root"                    ( .Env.DOC_ROOT | default "/code/public_html" )                             ) }}
+{{'{{'}} $v := merge $v ( dict "key"                         ( .Env.SSL_KEY_PATH  | default ( print $v.certspath  "/cert.key" ))         ) }}
+{{'{{'}} $v := merge $v ( dict "diffie"                      ( .Env.DH_FILE | default ( print $v.certspath  "/dhparams.pem" ))    ) }}
+{{'{{'}} $v := merge $v ( dict "nossl"                       ( .Env.NO_SSL | default "" )                                                ) }}
+{{'{{'}} if $v.nossl }}
+{{'{{'}} $v := merge $v ( dict "defaultnoforcessl" "1" )}}
+{{'{{'}} else }}
+{{'{{'}} $v := merge $v ( dict "defaultnoforcessl" "" )}}
+{{'{{'}} end }}
+{{'{{'}} $v := merge $v ( dict "noforcessl"                  ( .Env.NO_FORCE_SSL | default $v.defaultnoforcessl )                        ) }}
+{{'{{'}} $v := merge $v ( dict "server_name"                 ( .Env.APACHE_SERVERNAME | default "localhost" )                            ) }}
+{{'{{'}} $v := merge $v ( dict "server_aliases"              ( .Env.APACHE_SERVERALIASES | default "localhost.local" )                   ) }}
+{{'{{'}} $v := merge $v ( dict "real_ip_from_recursive"      ( .Env.APACHE_REAL_IP_FROM_RECURSIVE | default "on" )                       ) }}
+{{'{{'}} $v := merge $v ( dict "real_ip_from"                ( .Env.APACHE_REAL_IP_FROM | default "10.0.0.0/8 172.16.0.0/12 192.168.0.0/16" )) }}
+{{'{{'}} $v := merge $v ( dict "ssl_ciphers"                 ( .Env.APACHE_SSL_CIPHERS | default $dciphers )                             ) }}
+{{'{{'}} $v := merge $v ( dict "ssl_protocols"               ( .Env.APACHE_SSL_PROTOCOLS | default "All -SSLv2 -SSLv3" )                 ) }}
+
+{{'{{'}} define "vhost" }}
+    ServerName {{'{{'}}.server_name}}
+    {{'{{'}} range .server_aliases | splitList " " }}
+    ServerAlias {{'{{'}}.}}
+    {{'{{'}} end}}
+    # activate real_ip logging
+    RemoteIPHeader X-Client-IP
+    RemoteIPHeader X-Real-IP
+    {{'{{'}} range .real_ip_from | splitList " " }}
+    RemoteIPInternalProxy {{'{{'}} . }}
+    {{'{{'}} end }}
+    ServerAdmin {{'{{'}}.server_admin}}
+    DocumentRoot {{'{{'}}.doc_root}}
+	<Directory {{'{{'}}.doc_root}} >
+		Options -Indexes +FollowSymLinks
+		AllowOverride All
+		Require all granted
+	</Directory>
+	<FilesMatch \.php$>
+		SetHandler application/x-httpd-php
+	</FilesMatch>
+	DirectoryIndex disabled
+	DirectoryIndex index.php index.html
+	# SSL offload support (use_scheme is the proxified scheme)
+	# if X-SSL/X-FORWADED-PROTO header is set, we are behind a ssl gateway
+	# so the scheme is either from the request or
+	# forced to ssl if we have the X-SSL header set to 1
+	# break loop resolution loop while map resolution
+	SetEnvIf x-ssl             1              forwarded_ssl_scheme_https
+	SetEnvIf x-forwarded-proto https          forwarded_ssl_scheme_https
+	SetEnvIf REQUEST_SCHEME    https          forwarded_ssl_scheme_https
+	# if we come directly from https on localbox without x_ssl, set it.
+	# https
+    RequestHeader set x-ssl                1     env=forwarded_ssl_scheme_https
+    RequestHeader set x-https              1     env=forwarded_ssl_scheme_https
+    RequestHeader set x-forwarded-ssl      1     env=forwarded_ssl_scheme_https
+    RequestHeader set x-forwarded-proto    https env=forwarded_ssl_scheme_https
+    RequestHeader set x-forwarded-protocol https env=forwarded_ssl_scheme_https
+    # http
+    RequestHeader set x-ssl                  0    env=!forwarded_ssl_scheme_https
+    RequestHeader set x-https                0    env=!forwarded_ssl_scheme_https
+    RequestHeader set x-forwarded-ssl        0    env=!forwarded_ssl_scheme_https
+    RequestHeader set x-forwarded-proto      http env=!forwarded_ssl_scheme_https
+    RequestHeader set x-forwarded-protocol   tcp  env=!forwarded_ssl_scheme_https
+
+    # ports
+    RequestHeader set x-forwarded-port   443  env=forwarded_ssl_scheme_https
+    RequestHeader set x-forwarded-port   80   env=!forwarded_ssl_scheme_https
+
+	# final http activation
+	SetEnvIf X-Forwarded-Proto https HTTPS=on
+
+    # adds a Vary: Accept-Encoding in the response, and it's a valid varying
+    # info as we may not gzip depending on the value of Accept-Encoding
+    AddOutputFilterByType DEFLATE   text/plain
+    AddOutputFilterByType DEFLATE   text/css
+    AddOutputFilterByType DEFLATE   text/xml
+    AddOutputFilterByType DEFLATE   text/javascript
+    AddOutputFilterByType DEFLATE   text/cache-manifest
+    AddOutputFilterByType DEFLATE   application/json
+    AddOutputFilterByType DEFLATE   application/x-javascript
+    AddOutputFilterByType DEFLATE   application/xml
+    AddOutputFilterByType DEFLATE   application/xml+rss
+    AddOutputFilterByType DEFLATE   application/rss+xml
+    AddOutputFilterByType DEFLATE   application/javascript
+    AddOutputFilterByType DEFLATE   application/atom+xml
+    AddOutputFilterByType DEFLATE   application/ld+json
+    AddOutputFilterByType DEFLATE   application/manifest+json
+    AddOutputFilterByType DEFLATE   application/vnd.geo+json
+    AddOutputFilterByType DEFLATE   application/vnd.ms-fontobject
+    AddOutputFilterByType DEFLATE   application/x-font-ttf
+    AddOutputFilterByType DEFLATE   application/x-web-app-manifest+json
+    AddOutputFilterByType DEFLATE   image/svg+xml
+    AddOutputFilterByType DEFLATE   application/xhtml+xml
+    AddOutputFilterByType DEFLATE   application/vnd.mapbox-vector-tile
+    AddOutputFilterByType DEFLATE   font/opentype
+    DeflateWindowSize               15
+    DeflateBufferSize               8096
+    DeflateCompressionLevel         4
+    DeflateInflateLimitRequestBody  147483647
+
+    {{'{{'}} if .noforcessl }}# {{'{{'}} end }} RewriteCond %{HTTP:x-ssl} 1
+    {{'{{'}} if .noforcessl }}# {{'{{'}} end }} RewriteRule "^(.*)$" "https:///%{HTTP_HOST}$1" [R,L]
+
+    ProxyPass /mailcatcher  http://mailcatcher:80
+{{'{{'}} end }}
+
+<VirtualHost *:80>
+    SetEnvIfNoCase Request_Method "options" dontlog
+    ErrorLog  /logs/ssl-apache-error.log
+    CustomLog /logs/ssl-apache-access.log combined env=!dontlog
+    {{'{{'}} template "vhost" $v }}
+</VirtualHost>
+
+{{'{{'}} if not $v.nossl }}
+<VirtualHost *:443>
+    SetEnvIfNoCase Request_Method "options" ssldontlog
+    ErrorLog  /logs/ssl-apache-error.log
+    CustomLog /logs/ssl-apache-access.log combined env=!ssldontlog
+    SSLEngine                on
+    SSLHonorCipherOrder      On
+    SSLCipherSuite           {{'{{'}} $v.ssl_ciphers }}
+    SSLProtocol              {{'{{'}} $v.ssl_protocols }}
+    SSLCertificateFile       {{'{{'}} $v.cert }}
+    SSLCertificateKeyFile    {{'{{'}} $v.key }}
+    SSLOpenSSLConfCmd DHParameters "{{'{{'}} $v.diffie }}"
+    {{'{{'}} template "vhost" $v }}
+</VirtualHost>
+{{'{{'}} end }}
+# vim: syntax=apache ts=4 sw=4 sts=4 sr noet

@@ -1,0 +1,16 @@
+apt-utils
+software-properties-common
+sudo
+less
+nano
+wget
+curl
+gpg
+git
+build-essential
+ca-certificates
+gettext
+binutils
+libproj-dev
+gettext
+tzdata
