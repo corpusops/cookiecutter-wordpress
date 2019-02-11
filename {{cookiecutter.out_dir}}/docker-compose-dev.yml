@@ -7,8 +7,6 @@ x-images:
   wordpress: &wordpress
     environment: &wordpress_env
       WORDPRESS: 1
-    {%-if cookiecutter.use_submodule_for_deploy_code %}
-    command: /code/init/init.sh{% endif %}
     volumes: &wordpress_volumes
       - ./sys/:/code/sys/
       - ./local:/code/local
@@ -19,6 +17,7 @@ x-images:
       - ./{{cookiecutter.deploy_project_dir}}/public_html/wp-config.php/code/public_html/wp-config.php
       {%-else %}
       - ./sys/sudoer:/etc/sudoers.d/$APP_TYPE
+      - ./sys/init.sh:/code/init/init.sh
       {%- endif%}
       # to be done in children compose as we would shadow publichtml volume
       - ./public_html:/code/public_html
