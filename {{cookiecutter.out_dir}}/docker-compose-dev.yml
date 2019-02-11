@@ -30,7 +30,7 @@ services:
     environment:
       <<: [ *wordpress_env ]
       IMAGE_MODE: fg
-      NO_SSL: ""
+      NO_SSL: "0"
     ports:
     - "80:80"
     - "443:443"

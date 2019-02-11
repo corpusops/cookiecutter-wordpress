@@ -1,18 +1,18 @@
 {{'{{'}} $dciphers := "EECDH+AESGCM:EDH+AESGCM:ECDHE-RSA-AES128-GCM-SHA256:AES256+EECDH:DHE-RSA-AES128-GCM-SHA256:AES256+EDH:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4" }}
 {{'{{'}} $v := dict "$" $ }}
+{{'{{'}} $v := merge $v ( dict "Env"                           .Env) }}
 {{'{{'}} $v := merge $v ( dict "certspath"                   ( .Env.SSL_CERTS_PATH | default "/certs" )                                  ) }}
 {{'{{'}} $v := merge $v ( dict "cert"                        ( .Env.SSL_CERT_PATH | default ( print $v.certspath  "/cert.crt" ))         ) }}
 {{'{{'}} $v := merge $v ( dict "server_admin"                ( .Env.APACHE_SERVER_ADMIN | default ( "webmaster@localhost" )))}}
 {{'{{'}} $v := merge $v ( dict "doc_root"                    ( .Env.DOC_ROOT | default "/code/public_html" )                             ) }}
 {{'{{'}} $v := merge $v ( dict "key"                         ( .Env.SSL_KEY_PATH  | default ( print $v.certspath  "/cert.key" ))         ) }}
 {{'{{'}} $v := merge $v ( dict "diffie"                      ( .Env.DH_FILE | default ( print $v.certspath  "/dhparams.pem" ))    ) }}
-{{'{{'}} $v := merge $v ( dict "nossl"                       ( .Env.NO_SSL | default "" )                                                ) }}
-{{'{{'}} if $v.nossl }}
-{{'{{'}} $v := merge $v ( dict "defaultnoforcessl" "1" )}}
+{{'{{'}} $v := merge $v ( dict "nossl"                       ( .Env.NO_SSL | default "1" )                                                  ) }}
+{{'{{'}} if not ( .Env.NO_FORCE_SSL | empty ) }}
+{{'{{'}} $v := merge $v ( dict "noforcessl" .Env.NO_FORCE_SSL ) }}
 {{'{{'}} else }}
-{{'{{'}} $v := merge $v ( dict "defaultnoforcessl" "" )}}
+{{'{{'}} $v := merge $v ( dict "noforcessl" ((eq $v.nossl "1") | ternary "0" "1" )) }}
 {{'{{'}} end }}
-{{'{{'}} $v := merge $v ( dict "noforcessl"                  ( .Env.NO_FORCE_SSL | default $v.defaultnoforcessl )                        ) }}
 {{'{{'}} $v := merge $v ( dict "server_name"                 ( .Env.APACHE_SERVERNAME | default "localhost" )                            ) }}
 {{'{{'}} $v := merge $v ( dict "server_aliases"              ( .Env.APACHE_SERVERALIASES | default "localhost.local" )                   ) }}
 {{'{{'}} $v := merge $v ( dict "real_ip_from_recursive"      ( .Env.APACHE_REAL_IP_FROM_RECURSIVE | default "on" )                       ) }}
@@ -101,8 +101,8 @@
     DeflateCompressionLevel         4
     DeflateInflateLimitRequestBody  147483647
 
-    {{'{{'}} if .noforcessl }}# {{'{{'}} end }} RewriteCond %{HTTP:x-ssl} 1
-    {{'{{'}} if .noforcessl }}# {{'{{'}} end }} RewriteRule "^(.*)$" "https:///%{HTTP_HOST}$1" [R,L]
+    {{'{{'}} if eq .noforcessl "1" }}# {{'{{'}} end }} RewriteCond %{HTTP:x-ssl} 1
+    {{'{{'}} if eq .noforcessl "1" }}# {{'{{'}} end }} RewriteRule "^(.*)$" "https:///%{HTTP_HOST}$1" [R,L]
 
     ProxyPass /mailcatcher  http://mailcatcher:80
 {{'{{'}} end }}
@@ -114,7 +114,7 @@
     {{'{{'}} template "vhost" $v }}
 </VirtualHost>
 
-{{'{{'}} if not $v.nossl }}
+{{'{{'}} if ne $v.nossl "1" }}
 <VirtualHost *:443>
     SetEnvIfNoCase Request_Method "options" ssldontlog
     ErrorLog  /logs/ssl-apache-error.log
