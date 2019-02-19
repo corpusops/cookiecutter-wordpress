@@ -77,13 +77,12 @@ services:
   {%-endif%}
   backup:
     <<: [ *env ]
-    image: "corpusops/dbsmartbackup:3"
+    image: "corpusops/dbsmartbackup:{{cookiecutter.mysql_image.split('/', 1)[1].replace(':', '-')}}"
+    environment: {HOST: db}
     restart: always
     volumes:
       - backupdb-dumps:/srv/backups/
       - backupdb-logs:/srv/backups/logs/
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-      - ./local/backup/setup/reconfigure.yml:/setup/reconfigure.yml:ro
 {% if db_tag == 'mysql' %}  setup-mysql:
     <<: [ *env ]
     image: "{{cookiecutter.mysql_image}}"
