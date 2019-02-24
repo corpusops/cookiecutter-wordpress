@@ -16,11 +16,19 @@ x-images:
     working_dir: /code/src
     command:
     - /bin/sh
-    - '-c'
-    - >-
-      :
-      && dockerize -wait http://setup-{{db_tag}} -timeout $${MYSQL_STARTUP_TIMEOUT}
-      && /init.sh
+    - '-ec'
+    - |-
+      dockerize -wait http://setup-{{db_tag}} -timeout $${MYSQL_STARTUP_TIMEOUT}
+      export WORDPRESS__HTTP_PROTECT_USER=$${WORDPRESS__HTTP_PROTECT_USER:-root}
+      export WORDPRESS__HTTP_PROTECT_PASSWORD=$${WORDPRESS__HTTP_PROTECT_PASSWORD-}
+      touch /etc/htpasswd-protect
+      chmod 644 /etc/htpasswd-protect
+      if [ "x$$WORDPRESS__HTTP_PROTECT_PASSWORD" != "x" ];then
+        echo "/ htpasswd:">&2
+        echo "$$WORDPRESS__HTTP_PROTECT_PASSWORD"\
+        | htpasswd -bim /etc/htpasswd-protect "$$WORDPRESS__HTTP_PROTECT_USER"
+      fi
+      exec /init.sh
     volumes:
       {%- if not cookiecutter.remove_cron %}
       - ./crontab:/etc/cron.d/{{cookiecutter.app_type}}

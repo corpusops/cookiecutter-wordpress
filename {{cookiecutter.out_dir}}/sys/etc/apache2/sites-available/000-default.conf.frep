@@ -33,26 +33,38 @@
     {{'{{'}} end }}
     ServerAdmin {{'{{'}}.server_admin}}
     DocumentRoot {{'{{'}}.doc_root}}
-	<Directory {{'{{'}}.doc_root}} >
-		Options -Indexes +FollowSymLinks
-		AllowOverride All
-		Require all granted
-	</Directory>
-	<FilesMatch \.php$>
-		SetHandler application/x-httpd-php
-	</FilesMatch>
-	DirectoryIndex disabled
-	DirectoryIndex index.php index.html
-	# SSL offload support (use_scheme is the proxified scheme)
-	# if X-SSL/X-FORWADED-PROTO header is set, we are behind a ssl gateway
-	# so the scheme is either from the request or
-	# forced to ssl if we have the X-SSL header set to 1
-	# break loop resolution loop while map resolution
-	SetEnvIf x-ssl             1              forwarded_ssl_scheme_https
-	SetEnvIf x-forwarded-proto https          forwarded_ssl_scheme_https
-	SetEnvIf REQUEST_SCHEME    https          forwarded_ssl_scheme_https
-	# if we come directly from https on localbox without x_ssl, set it.
-	# https
+    <Directory {{'{{'}}.doc_root}} >
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        {{'{{'}} if .Env.WORDPRESS__HTTP_PROTECT_PASSWORD }}
+        AuthType Basic
+        AuthName "Restricted Content"
+        AuthUserFile /etc/htpasswd-protect
+        Require valid-user
+        {{'{{'}} else }}
+        Require all granted
+        {{'{{'}} end }}
+    </Directory>
+    <FilesMatch \.php$>
+        SetHandler application/x-httpd-php
+        {{'{{'}} if .Env.WORDPRESS__HTTP_PROTECT_PASSWORD }}
+        Require valid-user
+        {{'{{'}} else }}
+        Require all granted
+        {{'{{'}} end }}
+    </FilesMatch>
+    DirectoryIndex disabled
+    DirectoryIndex index.php index.html
+    # SSL offload support (use_scheme is the proxified scheme)
+    # if X-SSL/X-FORWADED-PROTO header is set, we are behind a ssl gateway
+    # so the scheme is either from the request or
+    # forced to ssl if we have the X-SSL header set to 1
+    # break loop resolution loop while map resolution
+    SetEnvIf x-ssl             1              forwarded_ssl_scheme_https
+    SetEnvIf x-forwarded-proto https          forwarded_ssl_scheme_https
+    SetEnvIf REQUEST_SCHEME    https          forwarded_ssl_scheme_https
+    # if we come directly from https on localbox without x_ssl, set it.
+    # https
     RequestHeader set x-ssl                1     env=forwarded_ssl_scheme_https
     RequestHeader set x-https              1     env=forwarded_ssl_scheme_https
     RequestHeader set x-forwarded-ssl      1     env=forwarded_ssl_scheme_https
@@ -69,8 +81,8 @@
     RequestHeader set x-forwarded-port   443  env=forwarded_ssl_scheme_https
     RequestHeader set x-forwarded-port   80   env=!forwarded_ssl_scheme_https
 
-	# final http activation
-	SetEnvIf X-Forwarded-Proto https HTTPS=on
+    # final http activation
+    SetEnvIf X-Forwarded-Proto https HTTPS=on
 
     # adds a Vary: Accept-Encoding in the response, and it's a valid varying
     # info as we may not gzip depending on the value of Accept-Encoding

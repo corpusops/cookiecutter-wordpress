@@ -15,3 +15,5 @@ cops_{{cookiecutter.app_type}}_docker_env_extra: |-
 cops_wordpress_restarted_services: "{{'{{'}}cops_wordpress_restarted_services_default.replace(' wordpress', ' wordpress')}}"
 cops_wordpress_db_prefix: "wp_{{cookiecutter.lname}}"
 cops_wordpress_db_user: "wp{{cookiecutter.lname}}"
+cops_wordpress_http_protect_user: "root"
+cops_wordpress_http_protect_password: "rootroot"
