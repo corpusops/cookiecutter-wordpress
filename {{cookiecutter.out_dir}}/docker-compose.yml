@@ -87,7 +87,6 @@ services:
     <<: [ *env ]
     image: "corpusops/dbsmartbackup:{{cookiecutter.mysql_image.split('/', 1)[1].replace(':', '-')}}"
     environment: {HOST: db}
-    restart: always
     volumes:
       - backupdb-dumps:/srv/backups/
       - backupdb-logs:/srv/backups/logs/

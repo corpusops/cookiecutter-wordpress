@@ -8,6 +8,7 @@ x-{{cookiecutter.app_type}}: &{{cookiecutter.app_type}}
   image: "${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE}:${{'{'}}{{cookiecutter.app_type.upper()}}_IMAGE_VERSION}"
 services:
   {{cookiecutter.app_type}}:
+    restart: unless-stopped
     ports:
     - 80:80
     - "443:443"
@@ -15,4 +16,16 @@ services:
   {% if not cookiecutter.remove_cron %}
   cron:
     <<: [ *{{cookiecutter.app_type}} ]
+    restart: unless-stopped
   {%- endif%}
+  mailcatcher:
+    restart: unless-stopped
+  redis:
+    restart: unless-stopped
+  db:
+    restart: unless-stopped
+  backup:
+    restart: unless-stopped
+{% if db_tag == 'mysql' %}  setup-mysql:
+    restart: unless-stopped
+{% endif %}
