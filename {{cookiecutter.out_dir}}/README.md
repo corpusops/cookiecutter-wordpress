@@ -141,7 +141,7 @@ docker volume rm $id
 ```
 
 ## Doc for deployment on environments
-- [See here](./.docs/README.md)
+- [See here](./docs/README.md)
 
 ## Wordpress settings managment
 - We embrace many concepts to manage wordpress settings
@@ -151,5 +151,5 @@ docker volume rm $id
 - The layout and variable precedence is to load local.php which loads itself values from env
     - If the value is exposed on the environment, whenever you add/edit it, you need to add it
         - to ``docker.env`` & ``docker.env.dist`` in dev
-        - To **ansible setup**, [Read this section of the ansible readme](./.docs/README.md#wordpress-settings-setup).
+        - To **ansible setup**, [Read this section of the ansible readme](./docs/README.md#wordpress-settings-setup).
 
