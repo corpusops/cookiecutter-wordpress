@@ -14,3 +14,4 @@ binutils
 libproj-dev
 gettext
 tzdata
+libapache2-mod-rpaf

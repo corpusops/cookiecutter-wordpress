@@ -17,3 +17,5 @@ cops_wordpress_db_prefix: "wp_{{cookiecutter.lname}}"
 cops_wordpress_db_user: "wp{{cookiecutter.lname}}"
 cops_wordpress_http_protect_user: "root"
 cops_wordpress_http_protect_password: "rootroot"
+cops_wordpress_remote_ips: []
+cops_wordpress_admin_allowed_ips: []

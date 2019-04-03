@@ -23,6 +23,12 @@ x-images:
       export WORDPRESS__HTTP_PROTECT_PASSWORD=$${WORDPRESS__HTTP_PROTECT_PASSWORD-}
       touch /etc/htpasswd-protect
       chmod 644 /etc/htpasswd-protect
+      a2enmod rpaf
+      for i in docker-rpaf.conf docker-remoteip.conf;do
+        if [ -e /code/$$i ];then frep --overwrite /code/$$i:/etc/apache2/sites-enabled/$$i;fi
+      done
+      frep --overwrite /code/logrotate:/etc/logrotate.d/wordpress
+      frep --overwrite /code/htaccess.frep:/code/public_html/.htaccess
       if [ "x$$WORDPRESS__HTTP_PROTECT_PASSWORD" != "x" ];then
         echo "/ htpasswd:">&2
         echo "$$WORDPRESS__HTTP_PROTECT_PASSWORD"\
@@ -36,6 +42,10 @@ x-images:
       - certs:/certs/
       - logs:/logs/
       - ./local.php:/code/public_html/local.php
+      - ./htaccess.frep:/code/htaccess.frep
+      - ./logrotate:/code/logrotate
+      - ./docker-rpaf.conf:/code/docker-rpaf.conf
+      #- ./docker-remoteip.conf:/etc/apache2/conf-enabled/docker-remoteip.conf
       # to be done in children compose as we would shadow publichtml volume
       # - uploads:/code/public_html/wp-content/uploads/
 services:
