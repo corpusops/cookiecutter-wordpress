@@ -314,7 +314,7 @@
 # BEGIN WordPress
 {{ $WORDPRESS_ALLOWED_ADMIN_IPS := .Env.WORDPRESS_ALLOWED_ADMIN_IPS | default "noip" }}
 {{ if ne $WORDPRESS_ALLOWED_ADMIN_IPS "noip" }}
-<Files wp-login.php>
+<FilesMatch {{$WORDPRESS_LOGIN_URL}}>
 Order Deny,Allow
 Deny from all
 
@@ -322,9 +322,9 @@ Deny from all
 {{ range $ip := $WORDPRESS_ALLOWED_ADMIN_IPS | splitList "-|_" }}
 Allow from {{ $ip }}
 {{ end }}
-</Files>
+</FilesMatch>
 {{ end }}
- 
+
 <IfModule mod_rewrite.c>
 RewriteEngine On
 RewriteBase /

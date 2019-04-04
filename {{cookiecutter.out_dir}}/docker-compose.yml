@@ -98,8 +98,8 @@ services:
     image: "corpusops/dbsmartbackup:{{cookiecutter.mysql_image.split('/', 1)[1].replace(':', '-')}}"
     environment: {HOST: db}
     volumes:
-      - backupdb-dumps:/srv/backups/
-      - backupdb-logs:/srv/backups/logs/
+      - backupdb-dumps:/var/db_smart_backup/
+      - backupdb-logs:/var/db_smart_backup/logs/
 {% if db_tag == 'mysql' %}  setup-mysql:
     <<: [ *env ]
     image: "{{cookiecutter.mysql_image}}"
