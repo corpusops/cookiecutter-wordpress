@@ -37,7 +37,7 @@ x-images:
       exec /init.sh
     volumes:
       {%- if not cookiecutter.remove_cron %}
-      - ./crontab:/etc/cron.d/{{cookiecutter.app_type}}
+      - ./crontab:/etc/cron.d/{{cookiecutter.app_type}}.frep
       {%- endif %}
       - certs:/certs/
       - logs:/logs/

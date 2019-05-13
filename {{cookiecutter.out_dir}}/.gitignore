@@ -11,8 +11,28 @@ __pycache__
 
 # IDE settings
 .vscode
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 .idea
 .~lock*
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+# compiled output
+/dist
+/tmp
+/angular/**/*.js
+/angular/**/*.json
+!/angular/**/tsconfig.*.json
+/angular/**/*.map
+
+# dependencies
+/node_modules
 
 # Virtualenv
 /venv/
@@ -27,3 +47,21 @@ __pycache__
 
 /public_html/wp-content/uploads/**/*
 /public_html/local.php
+
+# misc
+/.sass-cache
+/connect.lock
+/coverage/*
+/libpeerconnection.log
+npm-debug.log
+testem.log
+yarn-error.log
+/typings
+*~
+
+# e2e
+/e2e/*.js
+/e2e/*.map
+
+#system files
+.ds_store
