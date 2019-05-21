@@ -94,13 +94,13 @@ _shell() {
     fi
     if [[ "$run_mode" == "dexec" ]];then
         set -- dvv docker exec -ti \
-            -e TERM=$TERM -e COLUMNS=$COLUMNS -e LINES=$LINES \
+            -e TERM=$TERM -e COLUMNS=${COLUMNS:-80} -e LINES=${LINES:-40} \
             -e SHELL_USER=${SHELL_USER} \
             $container $bargs
     else
         set -- dvv $DC \
             $run_mode $run_mode_args \
-            -e TERM=$TERM -e COLUMNS=$COLUMNS -e LINES=$LINES \
+            -e TERM=$TERM -e COLUMNS=${COLUMNS:-80} -e LINES=${LINES:-40} \
             -e SHELL_USER=${SHELL_USER} \
             $container $initsh $bargs
     fi
