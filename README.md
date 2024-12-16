@@ -1,7 +1,5 @@
 DISCLAIMER
 ============
-DISCLAIMER
-============
 
 **UNMAINTAINED/ABANDONED CODE / DO NOT USE**
 
@@ -15,6 +13,7 @@ As stated, the maintainers stopped development and therefore all support some ti
 
 We may also unpublish soon (as in the following monthes) any published ressources tied to the corpusops project (pypi, dockerhub, ansible-galaxy, the repositories).
 So, please don't rely on it after March 15, 2025 and adapt whatever project which used this code.
+
 
 
 
